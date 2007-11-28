@@ -1,0 +1,8 @@
+t/01_basics.t
+t/lib/MyXMLModule.pm
+Changes
+Makefile.PL
+README
+MANIFEST
+lib/Catalyst/Model/SOAP.pm
+META.yml                                 Module meta-data (added by MakeMaker)
