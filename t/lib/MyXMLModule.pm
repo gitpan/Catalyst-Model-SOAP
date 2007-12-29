@@ -3,7 +3,7 @@
 # can predict the answer and also avoid centering the test on
 # XML::Compile::SOAP and depending on network.
 {
-    package XML::Compile::SOAP::WSDL11;
+    package XML::Compile::WSDL11;
     use Symbol;
     sub new {
         return bless { symbol => gensym() }, MyXML::WSDL11;

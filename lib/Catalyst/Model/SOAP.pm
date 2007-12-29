@@ -1,13 +1,13 @@
 {   package Catalyst::Model::SOAP;
     use strict;
     use warnings;
-    use XML::Compile::SOAP;
+    use XML::Compile::WSDL11;
     use base qw(Catalyst::Model);
-    our $VERSION = '0.0.1';
+    our $VERSION = '0.0.2';
     sub register_wsdl {
         my ($self, $wsdl, $target) = @_;
 
-        my $wsdl_obj = XML::Compile::SOAP::WSDL11->new($wsdl);
+        my $wsdl_obj = XML::Compile::WSDL11->new($wsdl);
         my $realtarget = $self.'::'.$target;
 
         no strict 'refs';
