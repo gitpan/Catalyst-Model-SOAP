@@ -3,11 +3,32 @@
     use warnings;
     use XML::Compile::WSDL11;
     use base qw(Catalyst::Model);
-    our $VERSION = '0.0.2';
+    our $VERSION = '0.0.3';
     sub register_wsdl {
         my ($self, $wsdl, $target) = @_;
 
-        my $wsdl_obj = XML::Compile::WSDL11->new($wsdl);
+        my $wsdl_obj;
+        my $schema;
+
+        if (ref $wsdl eq 'HASH') {
+            $schema = $wsdl->{schema};
+            $wsdl = $wsdl->{wsdl}
+        }
+
+        if (ref $wsdl eq 'ARRAY') {
+            my $main = shift @{$wsdl};
+            $wsdl_obj = XML::Compile::WSDL11->new($wsdl);
+            $wsdl_obj->addWsdl($_) for @{$wsdl};
+        } else {
+            $wsdl_obj = XML::Compile::WSDL11->new($wsdl);
+        }
+
+        if (ref $schema eq 'ARRAY') {
+            $wsdl_obj->importDefinitions($_) for @{$schema};
+        } elsif ($schema) {
+            $wsdl_obj->importDefinitions($schema)
+        }
+
         my $realtarget = $self.'::'.$target;
 
         no strict 'refs';
@@ -44,6 +65,13 @@ Catalyst::Model::SOAP - Map a WSDL to a catalyst model class.
       use base qw(Catalyst::Model::SOAP);
       __PACKAGE__->register_wsdl('http://foo.bar/baz.wsdl', 'Baz');
       __PACKAGE__->register_wsdl('http://baz.bar/foo.wsdl', 'Foo');
+
+      # use several wsdl files
+      __PACKAGE__->register_wsdl([ $file1, $file2, $file3 ], 'Baz');
+
+      # and or register schemas
+      __PACKAGE__->register_wsdl({ wsdl => $scalar_or_array,
+            schema => $scalar_or_array }, 'Bla');
   };
   {# later in some other class..
      $c->model('SOAP::Baz')->getWeather(%arguments);
@@ -75,6 +103,14 @@ This method will register the operations described by $wsdl in the
 $targetclass package. $wsdl may be anythin XML::Compile::SOAP::WSDL11
 accepts. The $targetclass is a relative package name which will be
 concatenated in the name of the model.
+
+If $wsdl is an arrayref, the first element is the one passed to new,
+and the others will be the argument to subsequent addWsdl calls.
+
+If $wsdl is a hashref, the "wsdl" key will be handled like above and
+the "schema" key will be used to importDefinitions. If the content of
+the schema key is an arrayref, it will result in several calls to
+importDefinition.
 
 Note that XML::Compile->knownNamespace(...) can be used to help
 declaring the wsdl.
