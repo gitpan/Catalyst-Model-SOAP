@@ -3,7 +3,7 @@
     use warnings;
     use XML::Compile::WSDL11;
     use base qw(Catalyst::Model);
-    our $VERSION = '0.0.4';
+    our $VERSION = '0.0.5';
     sub register_wsdl {
         my ($self, $wsdl, $target) = @_;
 
@@ -18,7 +18,7 @@
         if (ref $wsdl eq 'ARRAY') {
             my $main = shift @{$wsdl};
             $wsdl_obj = XML::Compile::WSDL11->new($main);
-            $wsdl_obj->addWsdl($_) for @{$wsdl};
+            $wsdl_obj->addWSDL($_) for @{$wsdl};
         } else {
             $wsdl_obj = XML::Compile::WSDL11->new($wsdl);
         }
