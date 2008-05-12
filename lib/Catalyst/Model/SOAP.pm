@@ -5,7 +5,7 @@
     use XML::Compile::Util qw/pack_type/;
     use List::Util qw/first/;
     use base qw(Catalyst::Model);
-    our $VERSION = '0.0.6';
+    our $VERSION = '0.0.7';
 
 
     __PACKAGE__->mk_accessors('transport');
@@ -179,7 +179,9 @@
 
 
 {   use XML::Compile::Schema::BuiltInTypes;
-    package XML::Compile::Schema::BuiltInTypes;
+    package
+      # avoid being indexed...
+      XML::Compile::Schema::BuiltInTypes;
 
     $XML::Compile::Schema::BuiltInTypes::builtin_types{QName}{parse} =
      sub { my ($qname, $node) = @_;
