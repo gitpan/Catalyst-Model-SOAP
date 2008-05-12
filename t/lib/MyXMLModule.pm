@@ -21,6 +21,8 @@
            (bless { name => 'op5', service => 'sv2', port => 'pt4' }, MyXML::Operation),
           )
     }
+    sub importDefinitions {
+    }
 };
 {
     package MyXML::Operation;
@@ -39,6 +41,9 @@
     sub name {
         my $self = shift;
         return $self->{name};
+    }
+    sub soapStyle {
+        'document'
     }
 };
 1;
