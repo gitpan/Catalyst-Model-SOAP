@@ -1,8 +1,16 @@
-t/01_basics.t
+lib/Catalyst/Model/SOAP.pm
 t/lib/MyXMLModule.pm
+t/lib/TestTransport.pm
+t/hello.wsdl
+t/hello4.wsdl
+t/04_rpcliteral.t
+t/02_docliteral.t
+t/hello3.wsdl
+t/01_basics.t
+t/hello2.wsdl
+t/03_docliteral_multipart.t
 Changes
+MANIFEST
 Makefile.PL
 README
-MANIFEST
-lib/Catalyst/Model/SOAP.pm
 META.yml                                 Module meta-data (added by MakeMaker)

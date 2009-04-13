@@ -65,7 +65,7 @@ SEE ALSO
     Catalyst::Controller::SOAP, XML::LibXML, XML::Compile::SOAP
 
 AUTHORS
-    Daniel Ruoso "daniel.ruoso@verticalone.pt"
+    Daniel Ruoso "daniel@ruoso.com"
 
 BUG REPORTS
     Please submit all bugs regarding "Catalyst::Model::SOAP" to

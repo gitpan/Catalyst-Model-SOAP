@@ -5,7 +5,7 @@
     use XML::Compile::Util qw/pack_type/;
     use List::Util qw/first/;
     use base qw(Catalyst::Model);
-    our $VERSION = '0.0.7';
+    our $VERSION = '0.0.8';
 
 
     __PACKAGE__->mk_accessors('transport');
@@ -52,119 +52,66 @@
                 no strict 'refs';
                 @{$realtarget.'::ISA'} = qw(Catalyst::Model::SOAP::Instance);
 
-                my $serv = $wsdl_obj->find(service => $service)
+                my $serv = $wsdl_obj->findDef(service => $service)
                   or die 'Could not find service '.$service;
-                my @ports = @{$serv->{port} || []};
+                my @ports = @{$serv->{wsdl_port} || []};
                 my $port = first {$_->{name} eq $portname } @ports
                   or die 'Could not find port '.$portname;
                 my $bindname = $port->{binding}
                   or die 'Could not find binding for port '.$portname;
-                my $binding = $wsdl_obj->find(binding => $bindname)
+                my $binding = $wsdl_obj->findDef(binding => $bindname)
                   or die 'Could not find binding '.$bindname;
                 my $porttypename = $binding->{type}
                   or die 'Could not find portType for binding '.$bindname;
-                my $portType = $wsdl_obj->find(portType => $porttypename)
-                  or die 'Could not find portType '.$porttypename;
-                my $operations = $portType->{operation}
-                  or die 'No operations found for portType '.$porttypename;
+                my $operations = $binding->{wsdl_operation}
+                  or die 'No operations found for binding '.$bindname;
 
 
                 for my $operationhash (@$operations) {
                     my $operation = $wsdl_obj->operation(service => $service,
                                                          port => $portname,
+                                                         binding => $bindname,
+                                                         portType => $porttypename,
                                                          operation => $operationhash->{name});
-
-                    my $style = $binding->{'{'.NS_WSDLSOAP.'}binding'}[0]->getAttribute('style');
-                    my $proto = $binding->{'{'.NS_WSDLSOAP.'}binding'}[0]->getAttribute('transport');
-
-                    my ($use) = map { $_->{input}{'{'.NS_WSDLSOAP.'}body'}[0]->getAttribute('use') }
-                      grep { $_->{name} eq $operation->name } @{ $binding->{operation} || [] };
-
-                    $style = $style =~ /document/i ? 'document' : 'rpc';
-                    $use = $use =~ /literal/i ? 'literal' : 'encoded';
-
-                    $operation->{style} = $style;
-
-                    $self->_register_operation($wsdl_obj, $operation, $realtarget, $transport, $style, $use, $proto);
+                    $self->_register_operation($wsdl_obj, $operation, $realtarget, $transport);
                 }
 
-            }
+              }
         } else {
             my $realtarget = $self.'::'.$target;
             no strict 'refs';
             @{$realtarget.'::ISA'} = qw(Catalyst::Model::SOAP::Instance);
-            foreach my $operation ($wsdl_obj->operations(produce => 'OBJECTS')) {
-                $self->_register_operation($wsdl_obj, $operation,$realtarget,$transport,'','');
+            foreach my $operation ($wsdl_obj->operations()) {
+                $self->_register_operation($wsdl_obj, $operation, $realtarget, $transport);
             }
         }
     }
     sub _register_operation {
-        my ($self, $wsdl_obj, $operation, $realtarget, $transport, $style, $use, $proto) = @_;
+        my ($self, $wsdl_obj, $operation, $realtarget, $transport) = @_;
         no strict 'refs';
         my $send;
         if ($transport) {
             $send = $transport->compileClient(kind => $operation->kind);
         }
 
-        my ($rpcin, $rpcout);
-        if ($style =~ /rpc/i && $use =~ /literal/i) {
-            my $portop = $operation->portOperation();
+        my $code = $operation->compileClient($send ? ( transport => $send ) : ());
 
-            if ($portop->{input}{message}) {
-                my $input_parts = $wsdl_obj->find(message => $portop->{input}{message})
-                  ->{part};
+        my $name = $operation->name();
+        my $style = $operation->style;
+        my $use = $operation->{input_def}{body}{use};
 
-                for (@{$input_parts}) {
-                    my $type = $_->{type} ? $_->{type} : $_->{element};
-                    $_->{compiled_writer} = $wsdl_obj->schemas->compile
-                      (WRITER => $type, elements_qualified => 'ALL');
-                };
-
-                $rpcin = sub {
-                    my ($doc, $data) = @_;
-                    my $operation_element = $doc->createElement($operation->name);
-                    my @parts =
-                      map {
-                          $_->{compiled_writer}->($doc, $data->{$_->{name}})
-                      } @{$input_parts};
-                    $operation_element->appendChild($_)
-                      for grep { ref $_ } @parts;
-                    return $operation_element;
-                };
-            }
-
-            if ($portop->{output}{message}) {
-                my $output_parts = $wsdl_obj->find(message => $portop->{output}{message})
-                  ->{part};
-                for (@{$output_parts}) {
-                    my $type = $_->{type} ? $_->{type} : $_->{element};
-                    $_->{compiled_reader} = $wsdl_obj->schemas->compile
-                      (READER => $type);
-                }
-
-
-                $rpcout = sub {
-                    my $soap = shift;
-                    my @nodes = grep { UNIVERSAL::isa($_, 'XML::LibXML::Element') } @_;
-                    return
-                      {
-                       map {
-                           my $data = $_->{compiled_reader}->(shift @nodes);
-                           ( $_->{name} => $data )
-                       } @{$output_parts}
-                      };
-                };
-            }
-
-        }
-
-        my $code = $operation->compileClient($send ? ( transport => $send ) : (),
-                                             rpcin => $rpcout,
-                                             rpcout => $rpcin,
-                                             protocol => $proto);
         *{$realtarget.'::'.$operation->name()} = sub {
             my $self = shift;
-            return $code->(@_);
+            if ($style =~ /rpc/i) {
+              my $ret = $code->(@_);
+              if (exists $ret->{$name}) {
+                return $ret->{$name};
+              } else {
+                return $ret;
+              }
+            } else {
+              return $code->(@_);
+            }
         };
         *{$realtarget.'::_'.$operation->name().'_data'} = sub {
             return ($wsdl_obj, $operation, $code);
@@ -175,31 +122,6 @@
     use strict;
     use warnings;
     use base qw(Catalyst::Model);
-}
-
-
-{   use XML::Compile::Schema::BuiltInTypes;
-    package
-      # avoid being indexed...
-      XML::Compile::Schema::BuiltInTypes;
-
-    $XML::Compile::Schema::BuiltInTypes::builtin_types{QName}{parse} =
-     sub { my ($qname, $node) = @_;
-           my $prefix = $qname =~ s/^([^:]*)\:// ? $1 : '';
-
-           $node = $node->node if $node->isa('XML::Compile::Iterator');
-
-           unless ($prefix) {
-               return pack_type($node->namespaceURI, $qname);
-           }
-
-           my $ns = $node->lookupNamespaceURI($prefix)
-               or error __x"cannot find prefix `{prefix}' for QNAME `{qname}'"
-                     , prefix => $prefix, qname => $qname;
-           pack_type $ns, $qname;
-         };
-
-
 };
 
 
@@ -321,7 +243,7 @@ L<Catalyst::Controller::SOAP>, L<XML::LibXML>, L<XML::Compile::SOAP>
 
 =head1 AUTHORS
 
-Daniel Ruoso C<daniel.ruoso@verticalone.pt>
+Daniel Ruoso C<daniel@ruoso.com>
 
 =head1 BUG REPORTS
 
