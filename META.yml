@@ -1,6 +1,6 @@
 --- #YAML:1.0
 name:                Catalyst-Model-SOAP
-version:             0.0.8
+version:             0.0.9
 abstract:            Map a WSDL to a catalyst model class.
 license:             ~
 author:              

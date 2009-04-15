@@ -5,7 +5,7 @@
     use XML::Compile::Util qw/pack_type/;
     use List::Util qw/first/;
     use base qw(Catalyst::Model);
-    our $VERSION = '0.0.8';
+    our $VERSION = '0.0.9';
 
 
     __PACKAGE__->mk_accessors('transport');
@@ -52,27 +52,7 @@
                 no strict 'refs';
                 @{$realtarget.'::ISA'} = qw(Catalyst::Model::SOAP::Instance);
 
-                my $serv = $wsdl_obj->findDef(service => $service)
-                  or die 'Could not find service '.$service;
-                my @ports = @{$serv->{wsdl_port} || []};
-                my $port = first {$_->{name} eq $portname } @ports
-                  or die 'Could not find port '.$portname;
-                my $bindname = $port->{binding}
-                  or die 'Could not find binding for port '.$portname;
-                my $binding = $wsdl_obj->findDef(binding => $bindname)
-                  or die 'Could not find binding '.$bindname;
-                my $porttypename = $binding->{type}
-                  or die 'Could not find portType for binding '.$bindname;
-                my $operations = $binding->{wsdl_operation}
-                  or die 'No operations found for binding '.$bindname;
-
-
-                for my $operationhash (@$operations) {
-                    my $operation = $wsdl_obj->operation(service => $service,
-                                                         port => $portname,
-                                                         binding => $bindname,
-                                                         portType => $porttypename,
-                                                         operation => $operationhash->{name});
+                for my $operation ($wsdl_obj->operations(port => $portname)) {
                     $self->_register_operation($wsdl_obj, $operation, $realtarget, $transport);
                 }
 
