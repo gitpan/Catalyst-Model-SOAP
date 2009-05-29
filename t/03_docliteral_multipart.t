@@ -26,13 +26,10 @@ $test_code = sub {
   my $message = shift->toString;
   ok($message =~ /Hello|World/g, 'Output message contain parameters.');
   return $parser->parse_string(<<SOAPMESSAGE);
-<SOAP-ENV:Envelope xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/"><Body><hello:greeting xmlns:hello="http://example.com/hello">Hello World!</hello:greeting></Body></SOAP-ENV:Envelope>
+<SOAP-ENV:Envelope xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/"><SOAP-ENV:Body><hello:GreetingResponse xmlns:hello="http://example.com/hello"><hello:greeting>Hello World!</hello:greeting></hello:GreetingResponse></SOAP-ENV:Body></SOAP-ENV:Envelope>
 SOAPMESSAGE
 };
 my $ret = MyFooModel::Bar::Baz->Greet
   ({ who => 'World', greeting => 'Hello' });
 
-TODO: {
-  local $TODO = 'Some bug in XML::Compile here.';
-  is($ret->{greeting}, 'Hello World!', 'Output message processed!');
-}
+is($ret->{details}{greeting}, 'Hello World!', 'Output message processed!');

@@ -27,7 +27,7 @@ $test_code = sub {
   ok($message =~ /Hello|World/g, 'Output message contain parameters.');
 
   return $parser->parse_string(<<SOAPMESSAGE);
-<SOAP-ENV:Envelope xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/"><Body><Greet><hello:greeting xmlns:hello="http://example.com/hello">Hello World!</hello:greeting></Greet></Body></SOAP-ENV:Envelope>
+<SOAP-ENV:Envelope xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/" xmlns:hello="http://example.com/hello"><SOAP-ENV:Body><hello:Greet><hello:greeting>Hello World!</hello:greeting></hello:Greet></SOAP-ENV:Body></SOAP-ENV:Envelope>
 SOAPMESSAGE
 
 };
