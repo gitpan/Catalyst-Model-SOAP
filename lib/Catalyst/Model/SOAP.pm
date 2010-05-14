@@ -5,7 +5,7 @@
     use XML::Compile::Util qw/pack_type/;
     use List::Util qw/first/;
     use base qw(Catalyst::Model);
-    our $VERSION = '1.3';
+    our $VERSION = '1.4';
 
 
     __PACKAGE__->mk_accessors('transport');
