@@ -5,7 +5,7 @@
     use XML::Compile::Util qw/pack_type/;
     use List::Util qw/first/;
     use base qw(Catalyst::Model);
-    our $VERSION = '1.4';
+    our $VERSION = '1.5';
 
 
     __PACKAGE__->mk_accessors('transport');
@@ -83,7 +83,9 @@
             if ($style =~ /rpc/i) {
               my $ret = $code->(@_);
               if (exists $ret->{$name}) {
-                return $ret->{$name};
+                  return $ret->{$name};
+              } elsif (exists $ret->{$name.'Response'}) {
+                  return $ret->{$name.'Response'};
               } else {
                 return $ret;
               }

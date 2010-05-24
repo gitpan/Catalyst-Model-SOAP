@@ -9,6 +9,9 @@ use TestTransport;
 
 use XML::LibXML;
 my $parser = XML::LibXML->new();
+my $NS      = 'http://example.com/hello';
+use XML::Compile::SOAP::Util ':soap11';
+my $soapenv = SOAP11ENV;
 our $test_code;
 {
   package MyFooModel;
@@ -27,11 +30,18 @@ $test_code = sub {
   ok($message =~ /Hello|World/g, 'Output message contain parameters.');
 
   return $parser->parse_string(<<SOAPMESSAGE);
-<SOAP-ENV:Envelope xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/" xmlns:hello="http://example.com/hello"><SOAP-ENV:Body><hello:Greet><hello:greeting>Hello World!</hello:greeting></hello:Greet></SOAP-ENV:Body></SOAP-ENV:Envelope>
+<?xml version="1.0" encoding="UTF-8"?>
+<SOAP-ENV:Envelope xmlns:SOAP-ENV="$soapenv" xmlns:hello="$NS">
+  <SOAP-ENV:Body>
+    <hello:GreetResponse>
+      <hello:greeting>Hello, World!</hello:greeting>
+    </hello:GreetResponse>
+  </SOAP-ENV:Body>
+</SOAP-ENV:Envelope>
 SOAPMESSAGE
 
 };
 my $ret = MyFooModel::Bar::Baz->Greet
   ({ who => 'World', greeting => 'Hello' });
 
-is($ret->{greeting}, 'Hello World!', 'Output message processed!');
+is($ret->{greeting}, 'Hello, World!', 'Output message processed!');
